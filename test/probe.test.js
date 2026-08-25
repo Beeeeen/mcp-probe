@@ -7,6 +7,7 @@ import { run, exitCodeFor } from '../dist/run.js'
 import { renderJUnit } from '../dist/report/junit.js'
 import { renderTerminal } from '../dist/report/terminal.js'
 import { allChecks, selectChecks } from '../dist/checks/index.js'
+import { StdioTransport } from '../dist/client/stdio.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const fixture = (name) => join(here, '..', 'fixtures', name)
@@ -84,6 +85,35 @@ test('a server that cannot start is a result, not an exception', async () => {
   assert.equal(report.summary.fail, 1)
   assert.equal(report.results[0].id, 'connect')
   assert.equal(exitCodeFor(report, false), 1)
+})
+
+test('a server that dies on startup is reported, and its stderr is kept', async () => {
+  const report = await run(stdio('instant-exit-server.js'))
+
+  assert.equal(report.summary.fail, 1)
+  assert.equal(report.results[0].id, 'connect')
+  // The reason the server died is the only useful thing here, so it has to
+  // survive into the report.
+  assert.ok(
+    report.stderr.some((l) => l.includes('DATABASE_URL')),
+    `the server's own error message was lost: ${JSON.stringify(report.stderr)}`,
+  )
+})
+
+test('writing to a dead server never throws', async () => {
+  // Every write below lands on a closed pipe. Node reports that as EPIPE on
+  // the stream, and an unhandled EPIPE is an uncaught exception that would
+  // crash mcp-probe rather than produce a report. Whether the exit or the
+  // write wins the race is platform- and timing-dependent, so this drives the
+  // transport directly instead of relying on the race to reproduce.
+  const t = new StdioTransport({ command: process.execPath, args: [fixture('instant-exit-server.js')] })
+  await t.start()
+  await new Promise((r) => setTimeout(r, 250)) // let it exit
+
+  assert.doesNotThrow(() => t.notify('notifications/initialized'))
+  assert.doesNotThrow(() => t.writeRaw('garbage that will never be read\n'))
+  await assert.rejects(t.request('tools/list', {}, 500), (e) => e instanceof Error)
+  await assert.doesNotReject(t.close())
 })
 
 test('tools are never invoked unless asked', async () => {

@@ -33,6 +33,8 @@ export class StdioTransport implements Transport {
   /** stdout lines that were not valid JSON. Almost always a logging bug. */
   readonly stdoutNoise: string[] = []
   readonly stderr: string[] = []
+  /** Pipe faults (EPIPE and friends) seen after the child went away. */
+  readonly pipeErrors: string[] = []
   /** Notifications the server pushed at us, kept for later assertions. */
   readonly serverNotifications: JsonRpcResponse[] = []
 
@@ -70,6 +72,19 @@ export class StdioTransport implements Transport {
     child.stderr.on('data', (chunk: string) => {
       for (const line of chunk.split('\n')) if (line.trim()) this.stderr.push(line)
     })
+
+    // Writing to a pipe whose far end has gone emits EPIPE on the stream. With
+    // no listener Node promotes that to an uncaught exception, which would
+    // crash mcp-probe instead of reporting the dead server -- and the whole
+    // contract here is that a broken server produces a report, not a crash.
+    // Whether the write or the exit lands first is a race, so this shows up
+    // on some platforms and not others.
+    const swallow = (e: Error) => {
+      this.pipeErrors.push(e.message)
+    }
+    child.stdin.on('error', swallow)
+    child.stdout.on('error', swallow)
+    child.stderr.on('error', swallow)
 
     child.on('exit', (code, signal) => {
       this.exited = { code, signal }
@@ -157,25 +172,40 @@ export class StdioTransport implements Transport {
         reject(new TimeoutError(method, timeoutMs))
       }, timeoutMs)
       this.pending.set(id, { resolve, reject, timer })
-      this.child!.stdin.write(JSON.stringify(payload) + '\n', (err) => {
-        if (err) {
-          clearTimeout(timer)
-          this.pending.delete(id)
-          reject(new TransportClosedError(`Write to stdin failed: ${err.message}`))
-        }
-      })
+      const failWrite = (message: string) => {
+        clearTimeout(timer)
+        this.pending.delete(id)
+        reject(new TransportClosedError(`Write to stdin failed: ${message}`))
+      }
+      // write() reports asynchronously through the callback, but it can also
+      // throw synchronously once the stream is destroyed.
+      try {
+        this.child!.stdin.write(JSON.stringify(payload) + '\n', (err) => {
+          if (err) failWrite(err.message)
+        })
+      } catch (e) {
+        failWrite((e as Error).message)
+      }
     })
   }
 
   notify(method: string, params?: unknown): void {
-    if (!this.child || this.exited) return
-    this.child.stdin.write(JSON.stringify({ jsonrpc: '2.0', method, ...(params !== undefined ? { params } : {}) }) + '\n')
+    this.writeRaw(JSON.stringify({ jsonrpc: '2.0', method, ...(params !== undefined ? { params } : {}) }) + '\n')
   }
 
-  /** Write bytes verbatim. Used to test how the server handles garbage. */
+  /**
+   * Write bytes verbatim. Used to test how the server handles garbage, and the
+   * single choke point for every unsolicited write, so a dead pipe is handled
+   * in exactly one place.
+   */
   writeRaw(text: string): void {
-    if (!this.child || this.exited) return
-    this.child.stdin.write(text)
+    if (!this.child || this.exited || !this.child.stdin.writable) return
+    try {
+      this.child.stdin.write(text)
+    } catch (e) {
+      // The child can exit between the liveness check and the write landing.
+      this.pipeErrors.push((e as Error).message)
+    }
   }
 
   isAlive(): boolean {
@@ -191,7 +221,11 @@ export class StdioTransport implements Transport {
     this.pending.clear()
     const child = this.child
     if (!child || this.exited) return
-    child.stdin.end()
+    try {
+      child.stdin.end()
+    } catch {
+      /* Pipe already torn down; there is nothing left to close. */
+    }
     await new Promise<void>((resolve) => {
       const t = setTimeout(() => {
         child.kill('SIGKILL')
