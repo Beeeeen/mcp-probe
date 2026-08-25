@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: node ${{ matrix.node }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Windows is not optional here: spawning a server is where the
+        # platform differences bite, and that is the whole product.
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: ['18', '20', '22']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: node --test test/*.test.js
+
+  dogfood:
+    name: probe real servers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+      - name: The conforming fixture must pass under --strict
+        run: node dist/cli.js --strict -- node test/fixtures/good-server.js
+
+      - name: The broken fixture must fail
+        run: |
+          if node dist/cli.js -- node test/fixtures/bad-server.js; then
+            echo "::error::bad-server.js was reported as healthy; a check has regressed."
+            exit 1
+          fi
+
+      # Real servers change without warning. This job is allowed to report
+      # problems without blocking the build -- it is an early warning that the
+      # ecosystem moved, not a gate on our own correctness.
+      - name: Probe the reference servers
+        continue-on-error: true
+        run: |
+          mkdir -p /tmp/sandbox
+          node dist/cli.js --timeout 30000 -- npx -y @modelcontextprotocol/server-everything
+          node dist/cli.js --timeout 30000 -- npx -y @modelcontextprotocol/server-filesystem /tmp/sandbox
+
+  action:
+    name: the action works end to end
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci && npm run build && npm pack
+      # Install the tarball we just built so the action exercises this commit,
+      # not whatever happens to be on npm.
+      - run: npm install -g ./mcp-probe-*.tgz
+      - name: Run against the conforming fixture
+        run: mcp-probe --strict --json-out report.json -- node test/fixtures/good-server.js
+      - name: The JSON report must be complete
+        run: |
+          node -e '
+            const r = require("./report.json");
+            if (r.summary.fail !== 0) { console.error("unexpected failures"); process.exit(1); }
+            if (!r.server.name) { console.error("server name missing from report"); process.exit(1); }
+            if (!Array.isArray(r.results) || r.results.length < 10) { console.error("report is too thin"); process.exit(1); }
+            console.log(`ok: ${r.results.length} results, ${r.summary.pass} passed`);
+          '

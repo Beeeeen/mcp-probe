@@ -1,0 +1,135 @@
+name: 'mcp-probe'
+description: 'Test an MCP server for protocol conformance, schema quality and robustness. Fails the build when the server would break agents.'
+author: 'BenYang'
+branding:
+  icon: 'activity'
+  color: 'purple'
+
+inputs:
+  command:
+    description: 'Command that starts the stdio MCP server, e.g. "node build/index.js". Mutually exclusive with `url`.'
+    required: false
+  url:
+    description: 'URL of a streamable-HTTP MCP server. Mutually exclusive with `command`.'
+    required: false
+  strict:
+    description: 'Treat warnings as failures.'
+    required: false
+    default: 'false'
+  timeout:
+    description: 'Per-request timeout in milliseconds.'
+    required: false
+    default: '10000'
+  skip:
+    description: 'Comma-separated check ids or groups to skip (protocol, schema, robustness, hygiene).'
+    required: false
+  only:
+    description: 'Comma-separated check ids or groups to run exclusively.'
+    required: false
+  call-tools:
+    description: 'Invoke every tool. Off by default so the action never triggers a side effect you did not ask for.'
+    required: false
+    default: 'false'
+  junit:
+    description: 'Path to write a JUnit XML report to. Empty disables it.'
+    required: false
+    default: 'mcp-probe-results.xml'
+  version:
+    description: 'Version of mcp-probe to run.'
+    required: false
+    default: 'latest'
+
+outputs:
+  failures:
+    description: 'Number of failing checks.'
+    value: ${{ steps.probe.outputs.failures }}
+  warnings:
+    description: 'Number of warnings.'
+    value: ${{ steps.probe.outputs.warnings }}
+  report:
+    description: 'Path to the JSON report.'
+    value: ${{ steps.probe.outputs.report }}
+
+runs:
+  using: 'composite'
+  steps:
+    - id: probe
+      shell: bash
+      env:
+        INPUT_COMMAND: ${{ inputs.command }}
+        INPUT_URL: ${{ inputs.url }}
+        INPUT_STRICT: ${{ inputs.strict }}
+        INPUT_TIMEOUT: ${{ inputs.timeout }}
+        INPUT_SKIP: ${{ inputs.skip }}
+        INPUT_ONLY: ${{ inputs.only }}
+        INPUT_CALL_TOOLS: ${{ inputs.call-tools }}
+        INPUT_JUNIT: ${{ inputs.junit }}
+        INPUT_VERSION: ${{ inputs.version }}
+      run: |
+        set -o pipefail
+
+        if [ -z "$INPUT_COMMAND" ] && [ -z "$INPUT_URL" ]; then
+          echo '::error::mcp-probe needs either the command or the url input.'
+          exit 2
+        fi
+        if [ -n "$INPUT_COMMAND" ] && [ -n "$INPUT_URL" ]; then
+          echo '::error::Set either the command input or the url input, not both.'
+          exit 2
+        fi
+
+        args=(--timeout "$INPUT_TIMEOUT" --json-out mcp-probe-report.json)
+        [ "$INPUT_STRICT" = "true" ] && args+=(--strict)
+        [ "$INPUT_CALL_TOOLS" = "true" ] && args+=(--call-tools)
+        [ -n "$INPUT_SKIP" ] && args+=(--skip "$INPUT_SKIP")
+        [ -n "$INPUT_ONLY" ] && args+=(--only "$INPUT_ONLY")
+        [ -n "$INPUT_JUNIT" ] && args+=(--junit "$INPUT_JUNIT")
+
+        if [ -n "$INPUT_URL" ]; then
+          args+=(--url "$INPUT_URL")
+        else
+          # Everything after `--` is the server's own command line.
+          args+=(--)
+          # shellcheck disable=SC2206
+          args+=($INPUT_COMMAND)
+        fi
+
+        set +e
+        npx -y "mcp-probe@$INPUT_VERSION" "${args[@]}"
+        status=$?
+        set -e
+
+        node -e '
+          const fs = require("fs");
+          let r;
+          try { r = JSON.parse(fs.readFileSync("mcp-probe-report.json", "utf8")); }
+          catch { process.exit(0); }
+
+          const out = process.env.GITHUB_OUTPUT;
+          fs.appendFileSync(out, `failures=${r.summary.fail}\n`);
+          fs.appendFileSync(out, `warnings=${r.summary.warn}\n`);
+          fs.appendFileSync(out, `report=mcp-probe-report.json\n`);
+
+          const bad = r.results.filter((x) => x.status === "fail");
+          for (const f of bad) {
+            const title = f.target ? `${f.title} (${f.target})` : f.title;
+            console.log(`::error title=${title}::${(f.message || "").replace(/\n/g, " ")}`);
+          }
+
+          const rows = r.results
+            .filter((x) => x.status === "fail" || x.status === "warn")
+            .map((x) => `| ${x.status === "fail" ? "FAIL" : "WARN"} | \`${x.id}\` | ${x.target ? `\`${x.target}\`` : ""} | ${(x.message || "").replace(/\|/g, "\\|")} |`)
+            .join("\n");
+
+          const name = r.server.name || r.server.target;
+          const summary = [
+            `## mcp-probe: ${name}`,
+            "",
+            `**${r.summary.fail} failed** · ${r.summary.warn} warnings · ${r.summary.pass} passed · ${r.summary.skip} skipped`,
+            "",
+            rows ? ["| | check | target | detail |", "|---|---|---|---|", rows].join("\n") : "No problems found.",
+            "",
+          ].join("\n");
+          if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
+        '
+
+        exit $status
