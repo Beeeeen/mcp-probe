@@ -25,7 +25,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - run: node --test test/*.test.js
+      - run: node --test
 
   dogfood:
     name: probe real servers
@@ -40,11 +40,11 @@ jobs:
       - run: npm run build
 
       - name: The conforming fixture must pass under --strict
-        run: node dist/cli.js --strict -- node test/fixtures/good-server.js
+        run: node dist/cli.js --strict -- node fixtures/good-server.js
 
       - name: The broken fixture must fail
         run: |
-          if node dist/cli.js -- node test/fixtures/bad-server.js; then
+          if node dist/cli.js -- node fixtures/bad-server.js; then
             echo "::error::bad-server.js was reported as healthy; a check has regressed."
             exit 1
           fi
@@ -73,7 +73,7 @@ jobs:
       # not whatever happens to be on npm.
       - run: npm install -g ./mcp-probe-*.tgz
       - name: Run against the conforming fixture
-        run: mcp-probe --strict --json-out report.json -- node test/fixtures/good-server.js
+        run: mcp-probe --strict --json-out report.json -- node fixtures/good-server.js
       - name: The JSON report must be complete
         run: |
           node -e '

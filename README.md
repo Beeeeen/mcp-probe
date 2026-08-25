@@ -214,7 +214,7 @@ New checks are welcome, especially ones drawn from a bug you actually hit. A che
 
 - it must be **actionable** — the message says what to change
 - it must not **false-positive** on the reference servers (`@modelcontextprotocol/server-everything` and `server-filesystem` are probed in CI)
-- add the defect to `test/fixtures/bad-server.js` and assert on it in `test/probe.test.js`
+- add the defect to `fixtures/bad-server.js` and assert on it in `test/probe.test.js`
 
 ```bash
 npm install && npm run build && npm test

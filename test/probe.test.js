@@ -9,7 +9,7 @@ import { renderTerminal } from '../dist/report/terminal.js'
 import { allChecks, selectChecks } from '../dist/checks/index.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const fixture = (name) => join(here, 'fixtures', name)
+const fixture = (name) => join(here, '..', 'fixtures', name)
 
 const stdio = (file) => ({ kind: 'stdio', command: process.execPath, args: [fixture(file)] })
 

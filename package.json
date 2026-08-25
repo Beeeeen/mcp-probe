@@ -19,7 +19,7 @@
   "engines": { "node": ">=18" },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "npm run build && node --test test/*.test.js",
+    "test": "npm run build && node --test",
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {
