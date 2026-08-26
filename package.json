@@ -57,5 +57,6 @@
   "homepage": "https://github.com/Beeeeen/mcp-probe#readme",
   "bugs": {
     "url": "https://github.com/Beeeeen/mcp-probe/issues"
-  }
+  },
+  "author": "Ben Yang <ben@yangjiawei.com>"
 }
