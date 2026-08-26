@@ -222,7 +222,12 @@ npm install && npm run build && npm test
 
 ## See also
 
-[**context-xray**](https://github.com/Beeeeen/context-xray) -- the other half of this toolchain: it weighs what every MCP server in your Claude/Cursor/VS Code configs costs you in context-window tokens on every request. mcp-probe tells you whether a server *works*; context-xray tells you what it *costs*.
+The rest of the toolchain, built on the same zero-dependency MCP client:
+
+- [**mcp-wtf**](https://github.com/Beeeeen/mcp-wtf) -- your MCP server won't connect; find out why in 10 seconds.
+- [**context-xray**](https://github.com/Beeeeen/context-xray) -- what every configured MCP server costs you in context-window tokens on every request.
+
+mcp-wtf answers "why won't it connect", context-xray answers "what is it costing me", mcp-probe answers "will it break my users".
 
 ## License
 
