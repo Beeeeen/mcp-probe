@@ -3,12 +3,12 @@
 **Conformance and robustness tests for MCP servers. Built to run in CI.**
 
 [![CI](https://github.com/Beeeeen/mcp-probe/actions/workflows/ci.yml/badge.svg)](https://github.com/Beeeeen/mcp-probe/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/mcp-probe.svg)](https://www.npmjs.com/package/mcp-probe)
-[![node](https://img.shields.io/node/v/mcp-probe.svg)](https://www.npmjs.com/package/mcp-probe)
-[![license](https://img.shields.io/npm/l/mcp-probe.svg)](./LICENSE)
+[![npm](https://img.shields.io/npm/v/%40beeeeen%2Fmcp-probe.svg)](https://www.npmjs.com/package/@beeeeen/mcp-probe)
+[![node](https://img.shields.io/node/v/%40beeeeen%2Fmcp-probe.svg)](https://www.npmjs.com/package/@beeeeen/mcp-probe)
+[![license](https://img.shields.io/npm/l/%40beeeeen%2Fmcp-probe.svg)](./LICENSE)
 
 ```bash
-npx mcp-probe -- node build/index.js
+npx @beeeeen/mcp-probe -- node build/index.js
 ```
 
 No install, no config, no dependencies. Point it at a server, get a verdict.
@@ -96,14 +96,14 @@ Every failure comes with the offending payload and an explanation of what breaks
 
 ```bash
 # stdio server
-npx mcp-probe -- node build/index.js
-npx mcp-probe -- npx -y @modelcontextprotocol/server-filesystem /tmp
+npx @beeeeen/mcp-probe -- node build/index.js
+npx @beeeeen/mcp-probe -- npx -y @modelcontextprotocol/server-filesystem /tmp
 
 # streamable HTTP
-npx mcp-probe --url http://localhost:3000/mcp
+npx @beeeeen/mcp-probe --url http://localhost:3000/mcp
 
 # a server you already have configured
-npx mcp-probe --config ~/.claude.json --server github
+npx @beeeeen/mcp-probe --config ~/.claude.json --server github
 ```
 
 `--config` reads both the `mcpServers` shape (Claude Desktop, Claude Code, Cursor) and the `servers` shape (VS Code), so you can probe a server without retyping how it launches.
@@ -138,7 +138,7 @@ Failures become inline annotations, and a table lands in the job summary. Output
 Or without the action:
 
 ```yaml
-- run: npx mcp-probe --junit results.xml -- node build/index.js
+- run: npx @beeeeen/mcp-probe --junit results.xml -- node build/index.js
 ```
 
 ---
@@ -166,8 +166,8 @@ The default run only ever calls tools with *invalid* arguments — missing requi
 To measure real responses, opt in explicitly:
 
 ```bash
-npx mcp-probe --safe-tool list_directory -- node server.js   # just this one
-npx mcp-probe --call-tools -- node server.js                 # all of them
+npx @beeeeen/mcp-probe --safe-tool list_directory -- node server.js   # just this one
+npx @beeeeen/mcp-probe --call-tools -- node server.js                 # all of them
 ```
 
 There is a `delete_everything` tool in the test fixtures for a reason.

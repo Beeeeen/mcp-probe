@@ -94,7 +94,7 @@ runs:
         fi
 
         set +e
-        npx -y "mcp-probe@$INPUT_VERSION" "${args[@]}"
+        npx -y "@beeeeen/mcp-probe@$INPUT_VERSION" "${args[@]}"
         status=$?
         set -e
 

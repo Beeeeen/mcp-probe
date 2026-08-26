@@ -71,7 +71,7 @@ jobs:
       - run: npm ci && npm run build && npm pack
       # Install the tarball we just built so the action exercises this commit,
       # not whatever happens to be on npm.
-      - run: npm install -g ./mcp-probe-*.tgz
+      - run: npm install -g ./*mcp-probe-*.tgz
       - name: Run against the conforming fixture
         run: mcp-probe --strict --json-out report.json -- node fixtures/good-server.js
       - name: The JSON report must be complete
