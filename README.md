@@ -220,6 +220,10 @@ New checks are welcome, especially ones drawn from a bug you actually hit. A che
 npm install && npm run build && npm test
 ```
 
+## See also
+
+[**context-xray**](https://github.com/Beeeeen/context-xray) -- the other half of this toolchain: it weighs what every MCP server in your Claude/Cursor/VS Code configs costs you in context-window tokens on every request. mcp-probe tells you whether a server *works*; context-xray tells you what it *costs*.
+
 ## License
 
 MIT
