@@ -3,20 +3,44 @@
   "version": "0.1.0",
   "description": "Conformance and robustness test suite for Model Context Protocol (MCP) servers. Runs in CI, zero dependencies. Catches stdout pollution, broken tool schemas, and bad JSON-RPC error handling before your agent does.",
   "keywords": [
-    "mcp", "model-context-protocol", "mcp-server", "mcp-test", "mcp-testing",
-    "mcp-lint", "mcp-validator", "conformance", "testing", "ci", "json-rpc",
-    "claude", "anthropic", "agent", "llm", "tools"
+    "mcp",
+    "model-context-protocol",
+    "mcp-server",
+    "mcp-test",
+    "mcp-testing",
+    "mcp-lint",
+    "mcp-validator",
+    "conformance",
+    "testing",
+    "ci",
+    "json-rpc",
+    "claude",
+    "anthropic",
+    "agent",
+    "llm",
+    "tools"
   ],
   "license": "MIT",
   "type": "module",
-  "bin": { "mcp-probe": "dist/cli.js" },
+  "bin": {
+    "mcp-probe": "dist/cli.js"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
-  "files": ["dist", "README.md", "LICENSE"],
-  "engines": { "node": ">=18" },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "npm run build && node --test",
@@ -25,5 +49,13 @@
   "devDependencies": {
     "@types/node": "^22.10.0",
     "typescript": "^5.7.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Beeeeen/mcp-probe.git"
+  },
+  "homepage": "https://github.com/Beeeeen/mcp-probe#readme",
+  "bugs": {
+    "url": "https://github.com/Beeeeen/mcp-probe/issues"
   }
 }
