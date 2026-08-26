@@ -17,9 +17,9 @@ No install, no config, no dependencies. Point it at a server, get a verdict.
 
 ## Why this exists
 
-The official [Inspector](https://github.com/modelcontextprotocol/inspector) is a **visual** tool. You click through it by hand, and it tells you what a healthy server does. There is nothing that tells you what a *broken* one does, and nothing that runs on every pull request.
+The official [Inspector](https://github.com/modelcontextprotocol/inspector) is a **visual** tool -- you click through it by hand. The official [conformance suite](https://github.com/modelcontextprotocol/conformance) runs in CI, but it tests servers **over HTTP only**, and it checks the spec, not quality.
 
-So these ship, constantly:
+Most published MCP servers are **stdio** processes launched by the host -- and stdio is where the deadliest failure mode lives, one no HTTP-based test can even observe:
 
 ```js
 console.log('Server started')   // <- stdout IS the protocol channel.
@@ -29,7 +29,7 @@ That one line corrupts the JSON-RPC stream. The host cannot parse it, so it disc
 
 Every MCP client library discards bytes it cannot parse, which is why nothing reports this. **mcp-probe keeps the discarded bytes and shows them to you.**
 
-That is one check out of 16, across roughly 30 distinct findings — all of them things that have shipped in real, published servers.
+That is one check out of 16, across roughly 30 distinct findings — all of them things that have shipped in real, published servers. Beyond spec conformance, mcp-probe also grades what the spec cannot: whether a model can actually *use* the server -- description quality, schemas whose `required` fields exist, argument validation that runs before side effects, and the token weight of the tool list.
 
 ---
 
