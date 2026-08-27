@@ -127,7 +127,7 @@ Exit codes: `0` clean · `1` findings · `2` could not run.
 ## In CI
 
 ```yaml
-- uses: Beeeeen/mcp-probe@v1
+- uses: Beeeeen/mcp-probe@v0
   with:
     command: node build/index.js
     strict: true
