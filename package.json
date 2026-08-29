@@ -1,6 +1,6 @@
 {
   "name": "@beeeeen/mcp-probe",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Conformance and robustness test suite for Model Context Protocol (MCP) servers. Runs in CI, zero dependencies. Catches stdout pollution, broken tool schemas, and bad JSON-RPC error handling before your agent does.",
   "keywords": [
     "mcp",

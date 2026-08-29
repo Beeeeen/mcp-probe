@@ -1,5 +1,5 @@
 name: 'mcp-probe'
-description: 'Test an MCP server for protocol conformance, schema quality and robustness. Fails the build when the server would break agents.'
+description: 'Test an MCP server for protocol conformance, schema quality and robustness. Fails the build before your agents do.'
 author: 'BenYang'
 branding:
   icon: 'activity'
