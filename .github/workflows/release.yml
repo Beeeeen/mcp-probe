@@ -1,4 +1,4 @@
-# Publishes to npm via OIDC Trusted Publishing on every v* tag.
+﻿# Publishes to npm via OIDC Trusted Publishing on every v* tag.
 # npm side: package Settings -> Trusted Publisher -> GitHub Actions,
 # repository Beeeeen/mcp-probe, workflow release.yml. No token anywhere.
 name: Release
@@ -20,6 +20,7 @@ jobs:
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@latest
       - run: npm install
       - run: npm test
       - run: npm publish --provenance --access public
